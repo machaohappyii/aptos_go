@@ -11,7 +11,7 @@ golang 版本的aptos链上的一些操作
 mkdir go_aptos
 cd go_aptos
 go mod init go_aptos
-git clone https://github.com/coming-chat/go-aptos-sdk.git
+git clone https://github.com/machaohappyii/aptos_go.git
 go mod tidy
 ```
 
