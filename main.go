@@ -23,4 +23,7 @@ func main() {
 
 	// 给别人mint代币
 	aptos.MintCoin()
+
+	// burn代币
+	aptos.BurnCoin()
 }

@@ -50,6 +50,9 @@ func main() {
     
     // 给别人mint代币
     aptos.MintCoin()
+
+    // burn代币
+    aptos.BurnCoin()
 }
 ```
 
@@ -466,4 +469,79 @@ func MintCoin() {
 
 
 
+### BurnCoin
+
+```go
+//	mint测试币 主要以 moon币为例  必须是发布者才能调用mintCoin  记得注册前先领取下水龙头 当做gas
+//      销毁代币
+func BurnCoin() {
+    privateKey, err := hex.DecodeString("56cce9b64e140c55d065d1150452129aa128bbbf445190552df8a42011beb8b6")
+    if err != nil {
+    fmt.Println(err)
+    }
+    fmt.Println("privateKey", privateKey)
+    
+    account := aptosaccount.NewAccount(privateKey)
+    fmt.Println("account", account)
+    
+    fromAddress := "0x" + hex.EncodeToString(account.AuthKey[:])
+    fmt.Println("fromAddress", fromAddress)
+    
+    coinAddress := "0x39edef225b4d840416209012f7553d216f9ad62eed04f428059a1e1215df4d2f::moon_coin::MoonCoin"
+    isRegister := checkRegister(fromAddress, coinAddress)
+    if !isRegister {
+    fmt.Println("请先注册在领取")
+    return
+    }
+    client, err := aptosclient.Dial(context.Background(), restUrl)
+    
+    // Get Sender's account data and ledger info
+    accountData, err := client.GetAccount(fromAddress)
+    ledgerInfo, err := client.LedgerInfo()
+    
+    // Get gas price
+    gasPrice, err := client.EstimateGasPrice()
+    
+    //Build paylod
+    payload := &aptostypes.Payload{
+    Type:          "entry_function_payload",
+    Function:      "0x1::managed_coin::burn",
+    TypeArguments: []string{coinAddress},
+    Arguments: []interface{}{
+    "100000",
+    },
+    }
+    fmt.Println(coinAddress)
+    
+    // Build transaction
+    transaction := &aptostypes.Transaction{
+    Sender:                  fromAddress,
+    SequenceNumber:          accountData.SequenceNumber,
+    MaxGasAmount:            2000,
+    GasUnitPrice:            gasPrice,
+    Payload:                 payload,
+    ExpirationTimestampSecs: ledgerInfo.LedgerTimestamp + 600, // 10 minutes timeout
+    }
+    
+    // Get signing message from remote server
+    // Note: Later we will implement the local use of BCS encoding to create signing messages
+    signingMessage, err := client.CreateTransactionSigningMessage(transaction)
+    
+    // Sign message and complete transaction information
+    signatureData := account.Sign(signingMessage, "")
+    signatureHex := "0x" + hex.EncodeToString(signatureData)
+    publicKey := "0x" + hex.EncodeToString(account.PublicKey)
+    transaction.Signature = &aptostypes.Signature{
+    Type:      "ed25519_signature",
+    PublicKey: publicKey,
+    Signature: signatureHex,
+    }
+    // Submit transaction
+    newTx, err := client.SubmitTransaction(transaction)
+    if err != nil {
+    fmt.Println("MintCoin交易失败", err)
+    }
+    fmt.Printf("MintCoin tx hash = %v\n", newTx.Hash)
+}
+```
 
